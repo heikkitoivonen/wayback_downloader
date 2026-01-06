@@ -1,4 +1,4 @@
-# Wayback Machine Blog Downloader
+# Wayback Machine Downloader
 
 A Python tool to download and recover archived websites from the Wayback Machine (web.archive.org). This tool crawls an archived snapshot, downloads all content (HTML, images, CSS, JavaScript), and rewrites URLs to create a fully functional static copy that works offline.
 
@@ -55,36 +55,36 @@ Where `WAYBACK_URL` is the full Wayback Machine URL including timestamp.
 ### Finding Your Wayback URL
 
 1. Go to https://web.archive.org
-2. Enter your old blog URL
+2. Enter the URL of the website you want to recover
 3. Browse the calendar to find a snapshot
 4. Click on a timestamp to view the archived page
 5. Copy the full URL from the browser address bar
 
 The URL should look like:
 ```
-https://web.archive.org/web/20150315000000/yourblog.com
+https://web.archive.org/web/20150315000000/example.com
 ```
 
 ### Examples
 
-Download a blog to the default directory:
+Download a website to the default directory:
 ```bash
-python wayback_downloader.py "https://web.archive.org/web/20150315000000/myblog.com"
+python wayback_downloader.py "https://web.archive.org/web/20150315000000/example.com"
 ```
 
 Specify a custom output directory:
 ```bash
-python wayback_downloader.py "https://web.archive.org/web/20150315000000/myblog.com" -o my_recovered_blog
+python wayback_downloader.py "https://web.archive.org/web/20150315000000/example.com" -o my_recovered_site
 ```
 
 Limit download to first 50 pages (useful for testing):
 ```bash
-python wayback_downloader.py "https://web.archive.org/web/20150315000000/myblog.com" --max-pages 50
+python wayback_downloader.py "https://web.archive.org/web/20150315000000/example.com" --max-pages 50
 ```
 
 Adjust delay between requests (for faster or slower downloads):
 ```bash
-python wayback_downloader.py "https://web.archive.org/web/20150315000000/myblog.com" --delay 2.0
+python wayback_downloader.py "https://web.archive.org/web/20150315000000/example.com" --delay 2.0
 ```
 
 ### Command-Line Options
@@ -120,7 +120,7 @@ If you need faster downloads, you can reduce the delay (e.g., `--delay 0.5`), bu
 
 ## Output
 
-The downloaded site will be saved in the specified output directory with the same structure as the original site. To view your recovered blog:
+The downloaded site will be saved in the specified output directory with the same structure as the original site. To view your recovered site:
 
 1. Navigate to the output directory
 2. Open `index.html` in your web browser

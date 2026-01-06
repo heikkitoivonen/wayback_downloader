@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Wayback Machine Blog Downloader
+Wayback Machine Downloader
 Downloads archived websites from web.archive.org and builds a static local copy.
 """
 
@@ -453,7 +453,7 @@ def main():
         epilog="""
 Examples:
   %(prog)s "https://web.archive.org/web/20150101000000/example.com"
-  %(prog)s "https://web.archive.org/web/20150101000000/example.com" -o my_blog
+  %(prog)s "https://web.archive.org/web/20150101000000/example.com" -o my_site
   %(prog)s "https://web.archive.org/web/20150101000000/example.com" --max-pages 50
   %(prog)s "https://web.archive.org/web/20150101000000/example.com" --delay 2.0
         """,

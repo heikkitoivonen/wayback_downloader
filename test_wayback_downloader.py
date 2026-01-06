@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Unit tests for Wayback Machine Blog Downloader
+Unit tests for Wayback Machine Downloader
 """
 
 import pytest
@@ -22,7 +22,7 @@ class TestWaybackDownloader:
 
     def test_parse_wayback_url_with_path(self):
         """Test parsing a Wayback URL with path"""
-        url = "https://web.archive.org/web/20150101000000/example.com/blog/post"
+        url = "https://web.archive.org/web/20150101000000/example.com/content/post"
         downloader = WaybackDownloader(url, output_dir="test_output")
 
         assert downloader.timestamp == "20150101000000"
@@ -30,7 +30,7 @@ class TestWaybackDownloader:
 
     def test_parse_wayback_url_with_https(self):
         """Test parsing a Wayback URL with https original"""
-        url = "https://web.archive.org/web/20150101000000/https://example.com/blog"
+        url = "https://web.archive.org/web/20150101000000/https://example.com/page"
         downloader = WaybackDownloader(url, output_dir="test_output")
 
         assert downloader.timestamp == "20150101000000"
@@ -77,7 +77,7 @@ class TestWaybackDownloader:
         downloader = WaybackDownloader(url, output_dir="test_output")
 
         assert downloader._is_internal_url("/page.html") is True
-        assert downloader._is_internal_url("/blog/post") is True
+        assert downloader._is_internal_url("/content/post") is True
 
     def test_is_internal_url_external(self):
         """Test internal URL detection for external URLs"""
@@ -164,8 +164,8 @@ class TestWaybackDownloader:
         url = "https://web.archive.org/web/20150101000000/example.com"
         downloader = WaybackDownloader(url, output_dir="test_output")
 
-        filepath = downloader._url_to_filepath("http://example.com/blog/post.html")
-        assert filepath == Path("test_output/blog/post.html")
+        filepath = downloader._url_to_filepath("http://example.com/content/post.html")
+        assert filepath == Path("test_output/content/post.html")
 
     def test_url_to_filepath_no_extension(self):
         """Test URL to filepath conversion for URLs without extension"""
@@ -180,8 +180,8 @@ class TestWaybackDownloader:
         url = "https://web.archive.org/web/20150101000000/example.com"
         downloader = WaybackDownloader(url, output_dir="test_output")
 
-        filepath = downloader._url_to_filepath("http://example.com/blog/")
-        assert filepath == Path("test_output/blog/index.html")
+        filepath = downloader._url_to_filepath("http://example.com/content/")
+        assert filepath == Path("test_output/content/index.html")
 
     def test_url_to_filepath_with_query(self):
         """Test URL to filepath conversion with query parameters"""
