@@ -1,0 +1,124 @@
+# Wayback Machine Blog Downloader
+
+A Python tool to download and recover archived websites from the Wayback Machine (web.archive.org). This tool crawls an archived snapshot, downloads all content (HTML, images, CSS, JavaScript), and rewrites URLs to create a fully functional static copy that works offline.
+
+## Features
+
+- Downloads complete website snapshots from Wayback Machine
+- Automatically discovers and follows all internal links
+- Downloads all assets: HTML, CSS, JavaScript, images
+- Rewrites URLs for local browsing (no internet connection needed)
+- Removes Wayback Machine toolbar and scripts
+- Preserves original site structure
+- Rate-limited to be respectful to archive.org servers
+
+## Requirements
+
+- Python 3.6 or higher
+- requests library
+- beautifulsoup4 library
+
+## Installation
+
+1. Clone or download this repository
+
+2. Install dependencies:
+```bash
+pip install -r requirements.txt
+```
+
+## Usage
+
+### Basic Usage
+
+```bash
+python wayback_downloader.py "WAYBACK_URL"
+```
+
+Where `WAYBACK_URL` is the full Wayback Machine URL including timestamp.
+
+### Finding Your Wayback URL
+
+1. Go to https://web.archive.org
+2. Enter your old blog URL
+3. Browse the calendar to find a snapshot
+4. Click on a timestamp to view the archived page
+5. Copy the full URL from the browser address bar
+
+The URL should look like:
+```
+https://web.archive.org/web/20150315000000/yourblog.com
+```
+
+### Examples
+
+Download a blog to the default directory:
+```bash
+python wayback_downloader.py "https://web.archive.org/web/20150315000000/myblog.com"
+```
+
+Specify a custom output directory:
+```bash
+python wayback_downloader.py "https://web.archive.org/web/20150315000000/myblog.com" -o my_recovered_blog
+```
+
+Limit download to first 50 pages (useful for testing):
+```bash
+python wayback_downloader.py "https://web.archive.org/web/20150315000000/myblog.com" --max-pages 50
+```
+
+### Command-Line Options
+
+- `wayback_url`: (Required) Full Wayback Machine URL with timestamp
+- `-o, --output`: Output directory (default: `downloaded_site`)
+- `--max-pages`: Maximum number of pages to download (default: unlimited)
+
+## How It Works
+
+1. **URL Parsing**: Extracts the timestamp and original domain from the Wayback Machine URL
+2. **Crawling**: Starts from the initial URL and follows all internal links
+3. **Downloading**: Downloads HTML pages and all referenced resources (images, CSS, JS)
+4. **URL Rewriting**: Converts all links to relative paths for local browsing
+5. **Cleanup**: Removes Wayback Machine toolbar and scripts
+
+## Output
+
+The downloaded site will be saved in the specified output directory with the same structure as the original site. To view your recovered blog:
+
+1. Navigate to the output directory
+2. Open `index.html` in your web browser
+3. Browse the site normally - all links will work locally
+
+## Tips
+
+- Start with `--max-pages 10` to test before downloading entire sites
+- Large sites may take a long time - the tool sleeps 0.5 seconds between requests to avoid overloading archive.org
+- Not all archived pages may be available - the tool will skip missing resources
+- Check your output directory periodically to monitor progress
+
+## Troubleshooting
+
+**Missing dependencies error:**
+```bash
+pip install requests beautifulsoup4
+```
+
+**Invalid Wayback URL error:**
+Make sure your URL includes the timestamp and follows this format:
+```
+https://web.archive.org/web/TIMESTAMP/ORIGINAL_URL
+```
+
+**Slow downloads:**
+This is normal. The tool includes rate limiting to be respectful to archive.org. You can monitor progress in the terminal output.
+
+## Limitations
+
+- Only downloads content available in the Wayback Machine
+- Some dynamic features may not work (JavaScript-heavy sites, AJAX)
+- External resources (from other domains) are not downloaded
+- Very large sites may take considerable time to download
+
+## License
+
+This tool is provided as-is for personal use. Please be respectful of archive.org's resources and use reasonable rate limiting.
