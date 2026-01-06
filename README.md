@@ -154,4 +154,6 @@ This is normal and intentional. The tool uses a 1-second delay between requests 
 
 ## License
 
-This tool is provided as-is for personal use. Please be respectful of archive.org's resources and use reasonable rate limiting.
+This project is licensed under the MIT License - see the [LICENSE.txt](LICENSE.txt) file for details.
+
+Please be respectful of the Internet Archive's resources and use reasonable rate limiting when downloading archived content.
