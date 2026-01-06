@@ -1,5 +1,6 @@
 # Downloaded content
 downloaded_site/
+blog/
 
 # Python
 __pycache__/
@@ -25,12 +26,14 @@ wheels/
 
 # Virtual environments
 venv/
+.venv/
 ENV/
 env/
 
 # IDE
 .vscode/
 .idea/
+.project
 *.swp
 *.swo
 *~
