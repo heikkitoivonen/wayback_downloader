@@ -26,8 +26,20 @@ A Python tool to download and recover archived websites from the Wayback Machine
 1. Clone or download this repository
 
 2. Install dependencies:
+
+Using pip:
 ```bash
-pip install -r requirements.txt
+pip install requests beautifulsoup4
+```
+
+Or using uv (recommended):
+```bash
+uv sync
+```
+
+Or install directly with uv:
+```bash
+uv pip install requests beautifulsoup4
 ```
 
 ## Usage
@@ -127,7 +139,11 @@ The downloaded site will be saved in the specified output directory with the sam
 
 **Missing dependencies error:**
 ```bash
+# Using pip
 pip install requests beautifulsoup4
+
+# Or using uv
+uv sync
 ```
 
 **Invalid Wayback URL error:**
