@@ -5,7 +5,7 @@ Unit tests for Wayback Machine Blog Downloader
 
 import pytest
 from pathlib import Path
-from unittest.mock import Mock, patch, MagicMock
+from unittest.mock import Mock, patch
 from wayback_downloader import WaybackDownloader
 
 
@@ -47,7 +47,10 @@ class TestWaybackDownloader:
         downloader = WaybackDownloader(url, output_dir="test_output")
 
         wayback_url = downloader._build_wayback_url("http://example.com/page.html")
-        assert wayback_url == "https://web.archive.org/web/20150101000000/http://example.com/page.html"
+        assert (
+            wayback_url
+            == "https://web.archive.org/web/20150101000000/http://example.com/page.html"
+        )
 
     def test_build_wayback_url_relative(self):
         """Test building a Wayback URL from relative path"""
@@ -55,7 +58,10 @@ class TestWaybackDownloader:
         downloader = WaybackDownloader(url, output_dir="test_output")
 
         wayback_url = downloader._build_wayback_url("/page.html")
-        assert wayback_url == "https://web.archive.org/web/20150101000000/http://example.com/page.html"
+        assert (
+            wayback_url
+            == "https://web.archive.org/web/20150101000000/http://example.com/page.html"
+        )
 
     def test_is_internal_url_same_domain(self):
         """Test internal URL detection for same domain"""
@@ -182,7 +188,9 @@ class TestWaybackDownloader:
         url = "https://web.archive.org/web/20150101000000/example.com"
         downloader = WaybackDownloader(url, output_dir="test_output")
 
-        filepath = downloader._url_to_filepath("http://example.com/page?id=123&name=test")
+        filepath = downloader._url_to_filepath(
+            "http://example.com/page?id=123&name=test"
+        )
         assert "page" in str(filepath)
         assert "id" in str(filepath)
         assert "test" in str(filepath)
@@ -213,22 +221,22 @@ class TestWaybackDownloader:
         url = "https://web.archive.org/web/20150101000000/example.com"
         downloader = WaybackDownloader(url, output_dir="test_output")
 
-        assert 'User-Agent' in downloader.session.headers
-        assert 'WaybackDownloader' in downloader.session.headers['User-Agent']
+        assert "User-Agent" in downloader.session.headers
+        assert "WaybackDownloader" in downloader.session.headers["User-Agent"]
 
     def test_stats_initialization(self):
         """Test that statistics are properly initialized"""
         url = "https://web.archive.org/web/20150101000000/example.com"
         downloader = WaybackDownloader(url, output_dir="test_output")
 
-        assert downloader.stats['pages'] == 0
-        assert downloader.stats['images'] == 0
-        assert downloader.stats['css'] == 0
-        assert downloader.stats['js'] == 0
-        assert downloader.stats['other'] == 0
-        assert downloader.stats['retries'] == 0
+        assert downloader.stats["pages"] == 0
+        assert downloader.stats["images"] == 0
+        assert downloader.stats["css"] == 0
+        assert downloader.stats["js"] == 0
+        assert downloader.stats["other"] == 0
+        assert downloader.stats["retries"] == 0
 
-    @patch('wayback_downloader.requests.Session.get')
+    @patch("wayback_downloader.requests.Session.get")
     def test_download_file_success(self, mock_get):
         """Test successful file download"""
         # Setup mock response
@@ -243,14 +251,14 @@ class TestWaybackDownloader:
 
         result = downloader._download_file(
             "https://web.archive.org/web/20150101000000/http://example.com/test.html",
-            "http://example.com/test.html"
+            "http://example.com/test.html",
         )
 
         assert result is not None
         assert "http://example.com/test.html" in downloader.visited_urls
 
-    @patch('wayback_downloader.requests.Session.get')
-    @patch('time.sleep')
+    @patch("wayback_downloader.requests.Session.get")
+    @patch("time.sleep")
     def test_download_file_rate_limited(self, mock_sleep, mock_get):
         """Test file download with rate limiting (HTTP 429)"""
         # First call returns 429, second call succeeds
@@ -269,14 +277,14 @@ class TestWaybackDownloader:
 
         result = downloader._download_file(
             "https://web.archive.org/web/20150101000000/http://example.com/test.html",
-            "http://example.com/test.html"
+            "http://example.com/test.html",
         )
 
         assert result is not None
-        assert downloader.stats['retries'] == 1
+        assert downloader.stats["retries"] == 1
         assert mock_sleep.called
 
-    @patch('wayback_downloader.requests.Session.get')
+    @patch("wayback_downloader.requests.Session.get")
     def test_download_file_already_visited(self, mock_get):
         """Test that already visited URLs are skipped"""
         url = "https://web.archive.org/web/20150101000000/example.com"
@@ -287,7 +295,7 @@ class TestWaybackDownloader:
 
         result = downloader._download_file(
             "https://web.archive.org/web/20150101000000/http://example.com/test.html",
-            "http://example.com/test.html"
+            "http://example.com/test.html",
         )
 
         assert result is None
@@ -310,7 +318,9 @@ class TestURLEdgeCases:
         url = "https://web.archive.org/web/20150101000000/example.com"
         downloader = WaybackDownloader(url, output_dir="test_output")
 
-        filepath = downloader._url_to_filepath("http://example.com/search?q=test&page=2&sort=date")
+        filepath = downloader._url_to_filepath(
+            "http://example.com/search?q=test&page=2&sort=date"
+        )
         # Should create a valid filepath
         assert filepath.parent == Path("test_output")
         assert "search" in str(filepath)
@@ -342,5 +352,5 @@ class TestInitialization:
         assert len(downloader.url_queue) == 0
 
 
-if __name__ == '__main__':
-    pytest.main([__file__, '-v'])
+if __name__ == "__main__":
+    pytest.main([__file__, "-v"])

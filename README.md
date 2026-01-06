@@ -215,6 +215,35 @@ The test suite covers:
 - HTTP 429 handling with exponential backoff
 - Session management and headers
 
+### Code Linting and Formatting
+
+The project uses [Ruff](https://docs.astral.sh/ruff/) for linting and formatting - a fast, modern Python linter written in Rust.
+
+Run the linter:
+```bash
+uv run ruff check .
+```
+
+Auto-fix linting issues:
+```bash
+uv run ruff check --fix .
+```
+
+Format code:
+```bash
+uv run ruff format .
+```
+
+Check if code is formatted:
+```bash
+uv run ruff format --check .
+```
+
+Run both linting and formatting:
+```bash
+uv run ruff check . && uv run ruff format .
+```
+
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE.txt](LICENSE.txt) file for details.
