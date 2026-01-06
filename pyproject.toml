@@ -11,3 +11,9 @@ dependencies = [
 
 [project.scripts]
 wayback-downloader = "wayback_downloader:main"
+
+[dependency-groups]
+dev = [
+    "pytest>=8.3.5",
+    "pytest-mock>=3.14.1",
+]

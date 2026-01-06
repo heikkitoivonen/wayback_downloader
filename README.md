@@ -152,6 +152,53 @@ This is normal and intentional. The tool uses a 1-second delay between requests 
 - External resources (from other domains) are not downloaded
 - Very large sites may take considerable time to download
 
+## Development
+
+### Running Tests
+
+The project includes a comprehensive test suite. To run the tests:
+
+1. Install development dependencies:
+```bash
+pip install pytest pytest-mock
+```
+
+Or with uv (recommended):
+```bash
+uv sync --dev
+```
+
+2. Run the test suite:
+```bash
+pytest
+```
+
+Or with uv:
+```bash
+uv run pytest
+```
+
+Run with verbose output:
+```bash
+uv run pytest -v
+```
+
+Run with coverage report (requires pytest-cov):
+```bash
+uv run pytest --cov=wayback_downloader --cov-report=html
+```
+
+### Test Coverage
+
+The test suite covers:
+- URL parsing and validation
+- File type detection
+- Internal vs external URL detection
+- URL to filepath conversion
+- Rate limiting and retry logic
+- HTTP 429 handling with exponential backoff
+- Session management and headers
+
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE.txt](LICENSE.txt) file for details.

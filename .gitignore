@@ -1,6 +1,7 @@
 # Downloaded content
 downloaded_site/
 blog/
+test_output/
 
 # Python
 __pycache__/
@@ -23,6 +24,13 @@ wheels/
 *.egg-info/
 .installed.cfg
 *.egg
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+*.cover
+.hypothesis/
 
 # Virtual environments
 venv/
