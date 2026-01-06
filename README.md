@@ -10,11 +10,14 @@ A Python tool to download and recover archived websites from the Wayback Machine
 - Rewrites URLs for local browsing (no internet connection needed)
 - Removes Wayback Machine toolbar and scripts
 - Preserves original site structure
-- Rate-limited to be respectful to archive.org servers
+- **Smart rate limiting** with configurable delays (default: 1 second between requests)
+- **Automatic retry logic** with exponential backoff for rate limit errors (HTTP 429)
+- **Connection pooling** for improved performance
+- **Custom User-Agent** to identify the tool
 
 ## Requirements
 
-- Python 3.6 or higher
+- Python 3.8 or higher
 - requests library
 - beautifulsoup4 library
 
@@ -67,11 +70,33 @@ Limit download to first 50 pages (useful for testing):
 python wayback_downloader.py "https://web.archive.org/web/20150315000000/myblog.com" --max-pages 50
 ```
 
+Adjust delay between requests (for faster or slower downloads):
+```bash
+python wayback_downloader.py "https://web.archive.org/web/20150315000000/myblog.com" --delay 2.0
+```
+
 ### Command-Line Options
 
 - `wayback_url`: (Required) Full Wayback Machine URL with timestamp
 - `-o, --output`: Output directory (default: `downloaded_site`)
 - `--max-pages`: Maximum number of pages to download (default: unlimited)
+- `--delay`: Delay in seconds between requests (default: 1.0, recommended: 1.0-2.0)
+
+## Rate Limiting
+
+The tool includes built-in rate limiting to be respectful to the Internet Archive's servers:
+
+- **Default delay**: 1 second between requests (recommended)
+- **Automatic retry**: HTTP 429 (rate limit) responses trigger exponential backoff
+- **Max retries**: 5 attempts with increasing delays (2s, 4s, 8s, 16s, 32s)
+- **User-Agent**: Identifies requests as coming from this tool
+
+**Important**: The Internet Archive enforces rate limits to manage server load:
+- Exceeding ~60 requests/minute may trigger HTTP 429 responses
+- Persistent violations can result in temporary IP blocks (1+ hours)
+- Use `--delay 1.0` or higher for large downloads to avoid issues
+
+If you need faster downloads, you can reduce the delay (e.g., `--delay 0.5`), but monitor for rate limit errors. If you see "Rate limited (429)" messages, the tool will automatically slow down.
 
 ## How It Works
 
@@ -92,9 +117,11 @@ The downloaded site will be saved in the specified output directory with the sam
 ## Tips
 
 - Start with `--max-pages 10` to test before downloading entire sites
-- Large sites may take a long time - the tool sleeps 0.5 seconds between requests to avoid overloading archive.org
+- Large sites may take a long time - the default 1 second delay between requests ensures respectful usage
 - Not all archived pages may be available - the tool will skip missing resources
 - Check your output directory periodically to monitor progress
+- If you encounter rate limiting (429 errors), the tool will automatically retry with exponential backoff
+- For very large sites, consider increasing the delay to 2.0 seconds: `--delay 2.0`
 
 ## Troubleshooting
 
@@ -109,8 +136,14 @@ Make sure your URL includes the timestamp and follows this format:
 https://web.archive.org/web/TIMESTAMP/ORIGINAL_URL
 ```
 
+**Rate limit errors (HTTP 429):**
+The tool automatically handles rate limiting with exponential backoff. If you see repeated rate limit messages:
+- Increase the delay: `--delay 2.0` or higher
+- The tool will automatically retry up to 5 times with increasing delays
+- Persistent rate limiting may indicate an IP block (wait 1+ hours)
+
 **Slow downloads:**
-This is normal. The tool includes rate limiting to be respectful to archive.org. You can monitor progress in the terminal output.
+This is normal and intentional. The tool uses a 1-second delay between requests to be respectful to archive.org. You can monitor progress in the terminal output. For faster downloads, reduce the delay at your own risk: `--delay 0.5`
 
 ## Limitations
 

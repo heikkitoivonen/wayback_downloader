@@ -23,7 +23,7 @@ except ImportError:
 
 
 class WaybackDownloader:
-    def __init__(self, wayback_url, output_dir="downloaded_site", max_pages=None):
+    def __init__(self, wayback_url, output_dir="downloaded_site", max_pages=None, delay=1.0):
         """
         Initialize the Wayback Machine downloader.
 
@@ -31,10 +31,12 @@ class WaybackDownloader:
             wayback_url: Full Wayback Machine URL (e.g., https://web.archive.org/web/20150101000000/example.com)
             output_dir: Directory to save downloaded content
             max_pages: Maximum number of pages to download (None for unlimited)
+            delay: Delay in seconds between requests (default: 1.0)
         """
         self.wayback_url = wayback_url
         self.output_dir = Path(output_dir)
         self.max_pages = max_pages
+        self.delay = delay
 
         # Parse the Wayback URL to extract timestamp and original URL
         self.timestamp, self.original_domain = self._parse_wayback_url(wayback_url)
@@ -45,13 +47,20 @@ class WaybackDownloader:
         # Queue for URLs to process
         self.url_queue = deque()
 
+        # Session for connection pooling and custom headers
+        self.session = requests.Session()
+        self.session.headers.update({
+            'User-Agent': 'WaybackDownloader/1.0 (https://github.com/youruser/wayback-downloader)'
+        })
+
         # Statistics
         self.stats = {
             'pages': 0,
             'images': 0,
             'css': 0,
             'js': 0,
-            'other': 0
+            'other': 0,
+            'retries': 0
         }
 
     def _parse_wayback_url(self, url):
@@ -151,7 +160,7 @@ class WaybackDownloader:
         return self.output_dir / path
 
     def _download_file(self, wayback_url, original_url):
-        """Download a file from Wayback Machine."""
+        """Download a file from Wayback Machine with retry logic."""
         try:
             # Check if already downloaded
             if original_url in self.visited_urls:
@@ -159,9 +168,38 @@ class WaybackDownloader:
 
             self.visited_urls.add(original_url)
 
-            # Get the file
-            response = requests.get(wayback_url, timeout=30)
-            response.raise_for_status()
+            # Retry logic for rate limiting
+            max_retries = 5
+            retry_delay = 2.0  # Start with 2 seconds
+
+            for attempt in range(max_retries):
+                try:
+                    # Get the file
+                    response = self.session.get(wayback_url, timeout=30)
+
+                    # Handle rate limiting (HTTP 429)
+                    if response.status_code == 429:
+                        if attempt < max_retries - 1:
+                            self.stats['retries'] += 1
+                            wait_time = retry_delay * (2 ** attempt)  # Exponential backoff
+                            print(f"  Rate limited (429). Waiting {wait_time:.1f} seconds before retry {attempt + 1}/{max_retries}...")
+                            time.sleep(wait_time)
+                            continue
+                        else:
+                            print(f"  Rate limited (429). Max retries exceeded, skipping.")
+                            return None
+
+                    response.raise_for_status()
+                    break  # Success, exit retry loop
+
+                except requests.exceptions.RequestException as e:
+                    if attempt < max_retries - 1 and "429" in str(e):
+                        self.stats['retries'] += 1
+                        wait_time = retry_delay * (2 ** attempt)
+                        print(f"  Rate limited. Waiting {wait_time:.1f} seconds before retry {attempt + 1}/{max_retries}...")
+                        time.sleep(wait_time)
+                        continue
+                    raise  # Re-raise if not 429 or max retries exceeded
 
             # Determine local path
             filepath = self._url_to_filepath(original_url)
@@ -301,7 +339,7 @@ class WaybackDownloader:
                     self.url_queue.append(resource_url)
 
         # Be nice to the server
-        time.sleep(0.5)
+        time.sleep(self.delay)
 
     def download(self):
         """Start the download process."""
@@ -345,7 +383,10 @@ class WaybackDownloader:
         print(f"CSS files downloaded: {self.stats['css']}")
         print(f"JS files downloaded: {self.stats['js']}")
         print(f"Other files downloaded: {self.stats['other']}")
-        print(f"Total files: {sum(self.stats.values())}")
+        total_files = sum(v for k, v in self.stats.items() if k != 'retries')
+        print(f"Total files: {total_files}")
+        if self.stats['retries'] > 0:
+            print(f"Rate limit retries: {self.stats['retries']}")
         print(f"\nFiles saved to: {self.output_dir.absolute()}")
         print(f"Open {self.output_dir}/index.html in your browser to view the site")
 
@@ -359,6 +400,7 @@ Examples:
   %(prog)s "https://web.archive.org/web/20150101000000/example.com"
   %(prog)s "https://web.archive.org/web/20150101000000/example.com" -o my_blog
   %(prog)s "https://web.archive.org/web/20150101000000/example.com" --max-pages 50
+  %(prog)s "https://web.archive.org/web/20150101000000/example.com" --delay 2.0
         """
     )
 
@@ -367,11 +409,13 @@ Examples:
                         help='Output directory (default: downloaded_site)')
     parser.add_argument('--max-pages', type=int, default=None,
                         help='Maximum number of pages to download (default: unlimited)')
+    parser.add_argument('--delay', type=float, default=1.0,
+                        help='Delay in seconds between requests (default: 1.0, recommended: 1.0-2.0)')
 
     args = parser.parse_args()
 
     try:
-        downloader = WaybackDownloader(args.wayback_url, args.output, args.max_pages)
+        downloader = WaybackDownloader(args.wayback_url, args.output, args.max_pages, args.delay)
         downloader.download()
     except KeyboardInterrupt:
         print("\n\nDownload interrupted by user")
