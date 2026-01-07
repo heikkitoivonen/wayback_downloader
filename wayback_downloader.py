@@ -53,7 +53,7 @@ class WaybackDownloader:
         self.session = requests.Session()
         self.session.headers.update(
             {
-                "User-Agent": "WaybackDownloader/1.0 (https://github.com/youruser/wayback-downloader)"
+                "User-Agent": "WaybackDownloader/1.0 (https://github.com/heikkitoivonen/wayback_downloader)"
             }
         )
 
