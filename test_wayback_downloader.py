@@ -352,5 +352,88 @@ class TestInitialization:
         assert len(downloader.url_queue) == 0
 
 
+class TestBasePathScoping:
+    """Test base path scoping functionality"""
+
+    def test_parse_base_path_root(self):
+        """Test parsing base path from root URL"""
+        url = "https://web.archive.org/web/20150101000000/example.com"
+        downloader = WaybackDownloader(url, output_dir="test_output")
+
+        assert downloader.base_path == ""
+
+    def test_parse_base_path_with_directory(self):
+        """Test parsing base path from URL with directory"""
+        url = "https://web.archive.org/web/20150101000000/example.com/blog/"
+        downloader = WaybackDownloader(url, output_dir="test_output")
+
+        assert downloader.base_path == "/blog"
+
+    def test_parse_base_path_nested_directory(self):
+        """Test parsing base path from URL with nested directory"""
+        url = "https://web.archive.org/web/20150101000000/example.com/content/posts"
+        downloader = WaybackDownloader(url, output_dir="test_output")
+
+        assert downloader.base_path == "/content/posts"
+
+    def test_is_within_base_path_root_scope(self):
+        """Test that all URLs are within scope when base path is root"""
+        url = "https://web.archive.org/web/20150101000000/example.com"
+        downloader = WaybackDownloader(url, output_dir="test_output")
+
+        assert downloader._is_within_base_path("/blog/post.html") is True
+        assert downloader._is_within_base_path("/about.html") is True
+        assert downloader._is_within_base_path("/content/page") is True
+
+    def test_is_within_base_path_restricted_scope(self):
+        """Test URL scoping with restricted base path"""
+        url = "https://web.archive.org/web/20150101000000/example.com/blog/"
+        downloader = WaybackDownloader(url, output_dir="test_output")
+
+        # Within base path
+        assert downloader._is_within_base_path("/blog/post.html") is True
+        assert downloader._is_within_base_path("/blog/2021/article") is True
+        assert downloader._is_within_base_path("http://example.com/blog/page") is True
+
+        # Outside base path
+        assert downloader._is_within_base_path("/about.html") is False
+        assert downloader._is_within_base_path("/contact") is False
+        assert downloader._is_within_base_path("http://example.com/docs/") is False
+
+    def test_is_within_base_path_exact_match(self):
+        """Test that exact base path match is within scope"""
+        url = "https://web.archive.org/web/20150101000000/example.com/blog"
+        downloader = WaybackDownloader(url, output_dir="test_output")
+
+        assert downloader._is_within_base_path("/blog") is True
+        assert downloader._is_within_base_path("/blog/") is True
+
+    def test_is_within_base_path_relative_urls(self):
+        """Test base path scoping with relative URLs"""
+        url = "https://web.archive.org/web/20150101000000/example.com/blog/"
+        downloader = WaybackDownloader(url, output_dir="test_output")
+
+        assert downloader._is_within_base_path("/blog/post.html") is True
+        assert downloader._is_within_base_path("/blog/category/tech") is True
+
+    def test_is_within_base_path_external_domain(self):
+        """Test that external domains are not within scope"""
+        url = "https://web.archive.org/web/20150101000000/example.com/blog/"
+        downloader = WaybackDownloader(url, output_dir="test_output")
+
+        assert (
+            downloader._is_within_base_path("http://other.com/blog/post.html") is False
+        )
+
+    def test_is_within_base_path_nested(self):
+        """Test deeply nested paths within base path"""
+        url = "https://web.archive.org/web/20150101000000/example.com/docs/"
+        downloader = WaybackDownloader(url, output_dir="test_output")
+
+        assert downloader._is_within_base_path("/docs/api/v1/reference") is True
+        assert downloader._is_within_base_path("/docs/guide/intro.html") is True
+        assert downloader._is_within_base_path("/api/v1/reference") is False
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])

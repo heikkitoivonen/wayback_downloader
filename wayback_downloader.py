@@ -41,7 +41,9 @@ class WaybackDownloader:
         self.delay = delay
 
         # Parse the Wayback URL to extract timestamp and original URL
-        self.timestamp, self.original_domain = self._parse_wayback_url(wayback_url)
+        self.timestamp, self.original_domain, self.base_path = self._parse_wayback_url(
+            wayback_url
+        )
 
         # Set to track visited URLs (to avoid duplicates)
         self.visited_urls = set()
@@ -68,7 +70,7 @@ class WaybackDownloader:
         }
 
     def _parse_wayback_url(self, url):
-        """Extract timestamp and original URL from Wayback Machine URL."""
+        """Extract timestamp, original URL, and base path from Wayback Machine URL."""
         # Pattern: https://web.archive.org/web/TIMESTAMP/ORIGINAL_URL
         pattern = r"https?://web\.archive\.org/web/(\d+)/(.*)"
         match = re.match(pattern, url)
@@ -85,11 +87,13 @@ class WaybackDownloader:
 
         parsed = urlparse(original_url)
         domain = parsed.netloc
+        base_path = parsed.path.rstrip("/")  # Remove trailing slash for consistency
 
         print(f"Timestamp: {timestamp}")
         print(f"Original domain: {domain}")
+        print(f"Base path: {base_path if base_path else '/'}")
 
-        return timestamp, domain
+        return timestamp, domain, base_path
 
     def _build_wayback_url(self, original_url):
         """Convert an original URL to its Wayback Machine equivalent."""
@@ -121,6 +125,34 @@ class WaybackDownloader:
             return parsed.netloc == self.original_domain or parsed.netloc == ""
         except (ValueError, AttributeError):
             return False
+
+    def _is_within_base_path(self, url):
+        """Check if URL is within the base path specified in the starting URL."""
+        if not url:
+            return False
+
+        # If base_path is root, everything is within scope
+        if not self.base_path or self.base_path == "/":
+            return True
+
+        # Handle relative URLs
+        if url.startswith("/") and not url.startswith("//"):
+            path = url
+        elif url.startswith("//"):
+            parsed = urlparse("http:" + url)
+            path = parsed.path
+        else:
+            parsed = urlparse(url)
+            # Only check path if it's on our domain
+            if parsed.netloc and parsed.netloc != self.original_domain:
+                return False
+            path = parsed.path
+
+        # Remove trailing slash for comparison
+        path = path.rstrip("/")
+
+        # Check if path starts with base_path
+        return path.startswith(self.base_path) or path == self.base_path.rstrip("/")
 
     def _get_file_type(self, url):
         """Determine the file type based on URL."""
@@ -300,19 +332,26 @@ class WaybackDownloader:
 
                     # Only process internal URLs
                     if self._is_internal_url(absolute_url):
-                        # Convert to relative local path
-                        local_path = self._url_to_filepath(absolute_url)
-                        current_path = self._url_to_filepath(base_url)
+                        # Check if URL is within our base path scope
+                        if self._is_within_base_path(absolute_url):
+                            # Convert to relative local path
+                            local_path = self._url_to_filepath(absolute_url)
+                            current_path = self._url_to_filepath(base_url)
 
-                        try:
-                            relative_path = os.path.relpath(
-                                local_path, current_path.parent
-                            )
-                            tag[attr] = relative_path
+                            try:
+                                relative_path = os.path.relpath(
+                                    local_path, current_path.parent
+                                )
+                                tag[attr] = relative_path
 
-                            # Track resource for downloading
-                            resources.append(absolute_url)
-                        except (ValueError, OSError):
+                                # Track resource for downloading
+                                resources.append(absolute_url)
+                            except (ValueError, OSError):
+                                pass
+                        else:
+                            # Link is on same domain but outside base path
+                            # Keep it as-is (or convert to absolute path on the domain)
+                            # This preserves the link but doesn't download the resource
                             pass
 
         # Remove Wayback Machine toolbar and scripts
@@ -377,9 +416,10 @@ class WaybackDownloader:
                 # Make absolute
                 absolute_url = urljoin(original_url, href)
 
-                # Add internal HTML pages to queue
+                # Add internal HTML pages to queue (only if within base path)
                 if (
                     self._is_internal_url(absolute_url)
+                    and self._is_within_base_path(absolute_url)
                     and self._get_file_type(absolute_url) == "html"
                 ):
                     if absolute_url not in self.visited_urls:
