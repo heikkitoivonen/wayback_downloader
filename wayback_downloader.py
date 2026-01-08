@@ -8,6 +8,7 @@ import os
 import re
 import sys
 import argparse
+import logging
 from urllib.parse import urlparse, urljoin
 from pathlib import Path
 from collections import deque
@@ -22,9 +23,18 @@ except ImportError:
     sys.exit(1)
 
 
+# Set up logging
+logger = logging.getLogger(__name__)
+
+
 class WaybackDownloader:
     def __init__(
-        self, wayback_url, output_dir="downloaded_site", max_pages=None, delay=1.0
+        self,
+        wayback_url,
+        output_dir="downloaded_site",
+        max_pages=None,
+        delay=1.0,
+        verbose=False,
     ):
         """
         Initialize the Wayback Machine downloader.
@@ -34,11 +44,13 @@ class WaybackDownloader:
             output_dir: Directory to save downloaded content
             max_pages: Maximum number of pages to download (None for unlimited)
             delay: Delay in seconds between requests (default: 1.0)
+            verbose: Enable verbose output (default: False)
         """
         self.wayback_url = wayback_url
         self.output_dir = Path(output_dir)
         self.max_pages = max_pages
         self.delay = delay
+        self.verbose = verbose
 
         # Parse the Wayback URL to extract timestamp and original URL
         self.timestamp, self.original_domain, self.base_path = self._parse_wayback_url(
@@ -89,9 +101,9 @@ class WaybackDownloader:
         domain = parsed.netloc
         base_path = parsed.path.rstrip("/")  # Remove trailing slash for consistency
 
-        print(f"Timestamp: {timestamp}")
-        print(f"Original domain: {domain}")
-        print(f"Base path: {base_path if base_path else '/'}")
+        logger.info(f"Timestamp: {timestamp}")
+        logger.info(f"Original domain: {domain}")
+        logger.info(f"Base path: {base_path if base_path else '/'}")
 
         return timestamp, domain, base_path
 
@@ -242,14 +254,14 @@ class WaybackDownloader:
                             wait_time = retry_delay * (
                                 2**attempt
                             )  # Exponential backoff
-                            print(
-                                f"  Rate limited (429). Waiting {wait_time:.1f} seconds before retry {attempt + 1}/{max_retries}..."
+                            logger.warning(
+                                f"Rate limited (429). Waiting {wait_time:.1f} seconds before retry {attempt + 1}/{max_retries}..."
                             )
                             time.sleep(wait_time)
                             continue
                         else:
-                            print(
-                                "  Rate limited (429). Max retries exceeded, skipping."
+                            logger.warning(
+                                "Rate limited (429). Max retries exceeded, skipping."
                             )
                             return None
 
@@ -260,8 +272,8 @@ class WaybackDownloader:
                     if attempt < max_retries - 1 and "429" in str(e):
                         self.stats["retries"] += 1
                         wait_time = retry_delay * (2**attempt)
-                        print(
-                            f"  Rate limited. Waiting {wait_time:.1f} seconds before retry {attempt + 1}/{max_retries}..."
+                        logger.warning(
+                            f"Rate limited. Waiting {wait_time:.1f} seconds before retry {attempt + 1}/{max_retries}..."
                         )
                         time.sleep(wait_time)
                         continue
@@ -286,7 +298,7 @@ class WaybackDownloader:
             return response
 
         except Exception as e:
-            print(f"  Error downloading {wayback_url}: {e}")
+            logger.error(f"Error downloading {wayback_url}: {e}")
             return None
 
     def _rewrite_urls_in_html(self, html_content, base_url):
@@ -367,8 +379,8 @@ class WaybackDownloader:
         """Download a page and extract links to other pages/resources."""
         wayback_url = self._build_wayback_url(original_url)
 
-        print(f"\nDownloading: {original_url}")
-        print(f"  From: {wayback_url}")
+        logger.debug(f"Downloading: {original_url}")
+        logger.debug(f"From: {wayback_url}")
 
         response = self._download_file(wayback_url, original_url)
 
@@ -376,6 +388,16 @@ class WaybackDownloader:
             return
 
         file_type = self._get_file_type(original_url)
+
+        # Output progress indicator
+        if self.verbose:
+            # Show local path in verbose mode
+            local_path = self._url_to_filepath(original_url)
+            rel_path = local_path.relative_to(self.output_dir)
+            print(f"  {rel_path}")
+        else:
+            # Just print a dot for normal mode
+            print(".", end="", flush=True)
 
         # Update statistics
         if file_type == "html":
@@ -438,11 +460,11 @@ class WaybackDownloader:
 
     def download(self):
         """Start the download process."""
-        print(f"\n{'=' * 60}")
-        print("Wayback Machine Downloader")
-        print(f"{'=' * 60}")
-        print(f"Output directory: {self.output_dir}")
-        print(f"Starting URL: {self.wayback_url}")
+        logger.info("=" * 60)
+        logger.info("Wayback Machine Downloader")
+        logger.info("=" * 60)
+        logger.info(f"Output directory: {self.output_dir}")
+        logger.info(f"Starting URL: {self.wayback_url}")
 
         # Create output directory
         self.output_dir.mkdir(parents=True, exist_ok=True)
@@ -463,27 +485,35 @@ class WaybackDownloader:
         while self.url_queue:
             # Check max pages limit
             if self.max_pages and len(self.visited_urls) >= self.max_pages:
-                print(f"\nReached maximum page limit ({self.max_pages})")
+                if not self.verbose:
+                    print()  # New line after dots
+                logger.info(f"Reached maximum page limit ({self.max_pages})")
                 break
 
             url = self.url_queue.popleft()
             self._crawl_page(url)
 
+        # Ensure we end with a newline after dots
+        if not self.verbose:
+            print()
+
         # Print statistics
-        print(f"\n{'=' * 60}")
-        print("Download Complete!")
-        print(f"{'=' * 60}")
-        print(f"Pages downloaded: {self.stats['pages']}")
-        print(f"Images downloaded: {self.stats['images']}")
-        print(f"CSS files downloaded: {self.stats['css']}")
-        print(f"JS files downloaded: {self.stats['js']}")
-        print(f"Other files downloaded: {self.stats['other']}")
+        logger.info("=" * 60)
+        logger.info("Download Complete!")
+        logger.info("=" * 60)
+        logger.info(f"Pages downloaded: {self.stats['pages']}")
+        logger.info(f"Images downloaded: {self.stats['images']}")
+        logger.info(f"CSS files downloaded: {self.stats['css']}")
+        logger.info(f"JS files downloaded: {self.stats['js']}")
+        logger.info(f"Other files downloaded: {self.stats['other']}")
         total_files = sum(v for k, v in self.stats.items() if k != "retries")
-        print(f"Total files: {total_files}")
+        logger.info(f"Total files: {total_files}")
         if self.stats["retries"] > 0:
-            print(f"Rate limit retries: {self.stats['retries']}")
-        print(f"\nFiles saved to: {self.output_dir.absolute()}")
-        print(f"Open {self.output_dir}/index.html in your browser to view the site")
+            logger.info(f"Rate limit retries: {self.stats['retries']}")
+        logger.info(f"\nFiles saved to: {self.output_dir.absolute()}")
+        logger.info(
+            f"Open {self.output_dir}/index.html in your browser to view the site"
+        )
 
 
 def main():
@@ -518,12 +548,24 @@ Examples:
         default=1.0,
         help="Delay in seconds between requests (default: 1.0, recommended: 1.0-2.0)",
     )
+    parser.add_argument(
+        "-v",
+        "--verbose",
+        action="store_true",
+        help="Enable verbose output (shows each file being downloaded)",
+    )
 
     args = parser.parse_args()
 
+    # Configure logging
+    if args.verbose:
+        logging.basicConfig(level=logging.INFO, format="%(message)s", stream=sys.stdout)
+    else:
+        logging.basicConfig(level=logging.INFO, format="%(message)s", stream=sys.stdout)
+
     try:
         downloader = WaybackDownloader(
-            args.wayback_url, args.output, args.max_pages, args.delay
+            args.wayback_url, args.output, args.max_pages, args.delay, args.verbose
         )
         downloader.download()
     except KeyboardInterrupt:
