@@ -229,6 +229,14 @@ class WaybackDownloader:
 
         return self.output_dir / path
 
+    def _check_url_reachable(self, url: str) -> bool:
+        """Check if a URL is reachable via HEAD request."""
+        try:
+            response = self.session.head(url, timeout=5, allow_redirects=True)
+            return response.status_code < 400
+        except requests.exceptions.RequestException:
+            return False
+
     def _download_file(self, wayback_url: str, original_url: str) -> requests.Response | None:
         """Download a file from Wayback Machine with retry logic."""
         try:
@@ -324,18 +332,21 @@ class WaybackDownloader:
         ]:
             for tag in soup.find_all(tag_name):
                 if tag.has_attr(attr):
-                    original_url = str(tag[attr])
+                    tag_url = str(tag[attr])
 
                     # Skip Wayback Machine's own resources
-                    if "web.archive.org" in original_url and "/static/" in original_url:
+                    if "web.archive.org" in tag_url and "/static/" in tag_url:
                         tag.decompose()  # Remove Wayback toolbar/scripts
                         continue
 
-                    # Clean Wayback URLs
-                    if "web.archive.org/web/" in original_url:
+                    # Check if this is a Wayback URL and extract original
+                    was_wayback_url = "web.archive.org/web/" in tag_url
+                    original_url = tag_url
+
+                    if was_wayback_url:
                         # Extract original URL from Wayback URL
                         match = re.search(
-                            r"web\.archive\.org/web/\d+/(.*)", original_url
+                            r"web\.archive\.org/web/\d+/(.*)", tag_url
                         )
                         if match:
                             original_url = match.group(1)
@@ -345,7 +356,7 @@ class WaybackDownloader:
                     # Make absolute URL
                     absolute_url = urljoin(base_url, original_url)
 
-                    # Only process internal URLs
+                    # Process internal URLs
                     if self._is_internal_url(absolute_url):
                         # Check if URL is within our base path scope
                         if self._is_within_base_path(absolute_url):
@@ -368,6 +379,13 @@ class WaybackDownloader:
                             # Keep it as-is (or convert to absolute path on the domain)
                             # This preserves the link but doesn't download the resource
                             pass
+                    elif was_wayback_url:
+                        # External link that was a Wayback URL
+                        # Check if original URL is reachable
+                        if self._check_url_reachable(absolute_url):
+                            # Original site is up, use the original URL
+                            tag[attr] = absolute_url
+                        # else: keep the Wayback URL (tag_url) as-is
 
         # Remove Wayback Machine toolbar and scripts
         for script in soup.find_all("script"):
