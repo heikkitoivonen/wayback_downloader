@@ -352,6 +352,127 @@ class TestInitialization:
         assert len(downloader.url_queue) == 0
 
 
+class TestWaybackURLSuffixes:
+    """Test handling of Wayback Machine URL suffixes (cs_, js_, im_, etc.)"""
+
+    def test_parse_wayback_url_with_css_suffix(self):
+        """Test parsing Wayback URL with cs_ suffix"""
+        url = "https://web.archive.org/web/20210414192058cs_/https://example.com/style.css"
+        downloader = WaybackDownloader(url, output_dir="test_output")
+
+        assert downloader.timestamp == "20210414192058"
+        assert downloader.original_domain == "example.com"
+
+    def test_parse_wayback_url_with_js_suffix(self):
+        """Test parsing Wayback URL with js_ suffix"""
+        url = "https://web.archive.org/web/20210414192058js_/https://example.com/script.js"
+        downloader = WaybackDownloader(url, output_dir="test_output")
+
+        assert downloader.timestamp == "20210414192058"
+        assert downloader.original_domain == "example.com"
+
+    def test_parse_wayback_url_with_im_suffix(self):
+        """Test parsing Wayback URL with im_ suffix"""
+        url = "https://web.archive.org/web/20210414192058im_/https://example.com/image.png"
+        downloader = WaybackDownloader(url, output_dir="test_output")
+
+        assert downloader.timestamp == "20210414192058"
+        assert downloader.original_domain == "example.com"
+
+    def test_rewrite_urls_cleans_css_suffix(self):
+        """Test that URL rewriting handles cs_ suffix"""
+        url = "https://web.archive.org/web/20150101000000/example.com"
+        downloader = WaybackDownloader(url, output_dir="test_output")
+
+        html = '''<html><head>
+        <link href="https://web.archive.org/web/20150101000000cs_/https://example.com/style.css" rel="stylesheet">
+        </head><body></body></html>'''
+
+        rewritten, resources = downloader._rewrite_urls_in_html(html, "http://example.com/")
+
+        # The URL should be rewritten to a local path, not kept as archive.org
+        assert "web.archive.org" not in rewritten or "style.css" in str(resources)
+
+    def test_rewrite_urls_cleans_js_suffix(self):
+        """Test that URL rewriting handles js_ suffix"""
+        url = "https://web.archive.org/web/20150101000000/example.com"
+        downloader = WaybackDownloader(url, output_dir="test_output")
+
+        html = '''<html><head>
+        <script src="https://web.archive.org/web/20150101000000js_/https://example.com/app.js"></script>
+        </head><body></body></html>'''
+
+        rewritten, resources = downloader._rewrite_urls_in_html(html, "http://example.com/")
+
+        # The URL should be rewritten to a local path
+        assert "web.archive.org" not in rewritten or "app.js" in str(resources)
+
+    def test_rewrite_urls_cleans_image_suffix(self):
+        """Test that URL rewriting handles im_ suffix"""
+        url = "https://web.archive.org/web/20150101000000/example.com"
+        downloader = WaybackDownloader(url, output_dir="test_output")
+
+        html = '''<html><body>
+        <img src="https://web.archive.org/web/20150101000000im_/https://example.com/photo.jpg">
+        </body></html>'''
+
+        rewritten, resources = downloader._rewrite_urls_in_html(html, "http://example.com/")
+
+        # The URL should be rewritten to a local path
+        assert "web.archive.org" not in rewritten or "photo.jpg" in str(resources)
+
+
+class TestCheckUrlReachable:
+    """Test URL reachability checking"""
+
+    @patch("wayback_downloader.requests.Session.head")
+    def test_check_url_reachable_success(self, mock_head):
+        """Test URL reachability check returns True for successful response"""
+        mock_response = Mock()
+        mock_response.status_code = 200
+        mock_head.return_value = mock_response
+
+        url = "https://web.archive.org/web/20150101000000/example.com"
+        downloader = WaybackDownloader(url, output_dir="test_output")
+
+        assert downloader._check_url_reachable("http://example.com") is True
+
+    @patch("wayback_downloader.requests.Session.head")
+    def test_check_url_reachable_redirect(self, mock_head):
+        """Test URL reachability check returns True for redirect"""
+        mock_response = Mock()
+        mock_response.status_code = 301
+        mock_head.return_value = mock_response
+
+        url = "https://web.archive.org/web/20150101000000/example.com"
+        downloader = WaybackDownloader(url, output_dir="test_output")
+
+        assert downloader._check_url_reachable("http://example.com") is True
+
+    @patch("wayback_downloader.requests.Session.head")
+    def test_check_url_reachable_not_found(self, mock_head):
+        """Test URL reachability check returns False for 404"""
+        mock_response = Mock()
+        mock_response.status_code = 404
+        mock_head.return_value = mock_response
+
+        url = "https://web.archive.org/web/20150101000000/example.com"
+        downloader = WaybackDownloader(url, output_dir="test_output")
+
+        assert downloader._check_url_reachable("http://example.com") is False
+
+    @patch("wayback_downloader.requests.Session.head")
+    def test_check_url_reachable_exception(self, mock_head):
+        """Test URL reachability check returns False on exception"""
+        import requests
+        mock_head.side_effect = requests.exceptions.ConnectionError()
+
+        url = "https://web.archive.org/web/20150101000000/example.com"
+        downloader = WaybackDownloader(url, output_dir="test_output")
+
+        assert downloader._check_url_reachable("http://example.com") is False
+
+
 class TestBasePathScoping:
     """Test base path scoping functionality"""
 

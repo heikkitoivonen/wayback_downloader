@@ -84,7 +84,7 @@ class WaybackDownloader:
     def _parse_wayback_url(self, url: str) -> tuple[str, str, str]:
         """Extract timestamp, original URL, and base path from Wayback Machine URL."""
         # Pattern: https://web.archive.org/web/TIMESTAMP/ORIGINAL_URL
-        pattern = r"https?://web\.archive\.org/web/(\d+)/(.*)"
+        pattern = r"https?://web\.archive\.org/web/(\d+)[a-z_]*/(.*)"
         match = re.match(pattern, url)
 
         if not match:
@@ -346,7 +346,7 @@ class WaybackDownloader:
                     if was_wayback_url:
                         # Extract original URL from Wayback URL
                         match = re.search(
-                            r"web\.archive\.org/web/\d+/(.*)", tag_url
+                            r"web\.archive\.org/web/\d+[a-z_]*/(.*)", tag_url
                         )
                         if match:
                             original_url = match.group(1)
@@ -463,7 +463,7 @@ class WaybackDownloader:
 
                 # Clean Wayback URLs
                 if "web.archive.org/web/" in href:
-                    match = re.search(r"web\.archive\.org/web/\d+/(.*)", href)
+                    match = re.search(r"web\.archive\.org/web/\d+[a-z_]*/(.*)", href)
                     if match:
                         href = match.group(1)
                         if not href.startswith("http"):
@@ -504,7 +504,7 @@ class WaybackDownloader:
         self.output_dir.mkdir(parents=True, exist_ok=True)
 
         # Extract the original URL from the Wayback URL
-        match = re.search(r"web\.archive\.org/web/\d+/(.*)", self.wayback_url)
+        match = re.search(r"web\.archive\.org/web/\d+[a-z_]*/(.*)", self.wayback_url)
         if match:
             original_start_url = match.group(1)
             if not original_start_url.startswith("http"):
