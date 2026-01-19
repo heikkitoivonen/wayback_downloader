@@ -390,9 +390,22 @@ class WaybackDownloader:
         # Remove Wayback Machine toolbar and scripts
         for script in soup.find_all("script"):
             if script.string and (
-                "archive.org" in script.string or "wombat" in script.string.lower()
+                "archive.org" in script.string
+                or "wombat" in script.string.lower()
+                or "RufflePlayer" in script.string
             ):
                 script.decompose()
+
+        # Remove elements in HEAD that reference archive.org
+        head = soup.find("head")
+        if head:
+            for element in head.find_all(True):  # All tags in head
+                for attr in ["href", "src", "content"]:
+                    if element.has_attr(attr):
+                        attr_value = str(element[attr])
+                        if "archive.org" in attr_value:
+                            element.decompose()
+                            break
 
         return str(soup), resources
 
