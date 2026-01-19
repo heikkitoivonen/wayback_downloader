@@ -222,7 +222,7 @@ class TestWaybackDownloader:
         downloader = WaybackDownloader(url, output_dir="test_output")
 
         assert "User-Agent" in downloader.session.headers
-        assert "WaybackDownloader" in downloader.session.headers["User-Agent"]
+        assert "WaybackDownloader" in str(downloader.session.headers["User-Agent"])
 
     def test_stats_initialization(self):
         """Test that statistics are properly initialized"""

@@ -3,7 +3,7 @@ name = "wayback-downloader"
 version = "1.0.0"
 description = "Download archived websites from Wayback Machine"
 license = {text = "MIT"}
-requires-python = ">=3.8"
+requires-python = ">=3.10"
 dependencies = [
     "requests>=2.31.0",
     "beautifulsoup4>=4.12.0",
@@ -14,6 +14,7 @@ wayback-downloader = "wayback_downloader:main"
 
 [dependency-groups]
 dev = [
+    "pyright>=1.1.408",
     "pytest>=8.3.5",
     "pytest-mock>=3.14.1",
     "ruff>=0.14.10",

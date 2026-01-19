@@ -241,6 +241,7 @@ class WaybackDownloader:
             # Retry logic for rate limiting
             max_retries = 5
             retry_delay = 2.0  # Start with 2 seconds
+            response: requests.Response | None = None
 
             for attempt in range(max_retries):
                 try:
@@ -278,6 +279,8 @@ class WaybackDownloader:
                         time.sleep(wait_time)
                         continue
                     raise  # Re-raise if not 429 or max retries exceeded
+
+            assert response is not None  # Loop always succeeds or raises
 
             # Determine local path
             filepath = self._url_to_filepath(original_url)
@@ -321,7 +324,7 @@ class WaybackDownloader:
         ]:
             for tag in soup.find_all(tag_name):
                 if tag.has_attr(attr):
-                    original_url = tag[attr]
+                    original_url = str(tag[attr])
 
                     # Skip Wayback Machine's own resources
                     if "web.archive.org" in original_url and "/static/" in original_url:
@@ -425,7 +428,7 @@ class WaybackDownloader:
             # Parse for links to other pages
             soup = BeautifulSoup(response.text, "html.parser")
             for link in soup.find_all("a", href=True):
-                href = link["href"]
+                href = str(link["href"])
 
                 # Clean Wayback URLs
                 if "web.archive.org/web/" in href:
