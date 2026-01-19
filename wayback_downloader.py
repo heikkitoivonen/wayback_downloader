@@ -30,12 +30,12 @@ logger = logging.getLogger(__name__)
 class WaybackDownloader:
     def __init__(
         self,
-        wayback_url,
-        output_dir="downloaded_site",
-        max_pages=None,
-        delay=1.0,
-        verbose=False,
-    ):
+        wayback_url: str,
+        output_dir: str = "downloaded_site",
+        max_pages: int | None = None,
+        delay: float = 1.0,
+        verbose: bool = False,
+    ) -> None:
         """
         Initialize the Wayback Machine downloader.
 
@@ -81,7 +81,7 @@ class WaybackDownloader:
             "retries": 0,
         }
 
-    def _parse_wayback_url(self, url):
+    def _parse_wayback_url(self, url: str) -> tuple[str, str, str]:
         """Extract timestamp, original URL, and base path from Wayback Machine URL."""
         # Pattern: https://web.archive.org/web/TIMESTAMP/ORIGINAL_URL
         pattern = r"https?://web\.archive\.org/web/(\d+)/(.*)"
@@ -107,7 +107,7 @@ class WaybackDownloader:
 
         return timestamp, domain, base_path
 
-    def _build_wayback_url(self, original_url):
+    def _build_wayback_url(self, original_url: str) -> str:
         """Convert an original URL to its Wayback Machine equivalent."""
         # Handle relative URLs
         if not original_url.startswith("http"):
@@ -115,7 +115,7 @@ class WaybackDownloader:
 
         return f"https://web.archive.org/web/{self.timestamp}/{original_url}"
 
-    def _is_internal_url(self, url):
+    def _is_internal_url(self, url: str) -> bool:
         """Check if URL belongs to the original domain."""
         if not url:
             return False
@@ -138,7 +138,7 @@ class WaybackDownloader:
         except (ValueError, AttributeError):
             return False
 
-    def _is_within_base_path(self, url):
+    def _is_within_base_path(self, url: str) -> bool:
         """Check if URL is within the base path specified in the starting URL."""
         if not url:
             return False
@@ -166,7 +166,7 @@ class WaybackDownloader:
         # Check if path starts with base_path
         return path.startswith(self.base_path) or path == self.base_path.rstrip("/")
 
-    def _get_file_type(self, url):
+    def _get_file_type(self, url: str) -> str:
         """Determine the file type based on URL."""
         url_lower = url.lower()
 
@@ -199,7 +199,7 @@ class WaybackDownloader:
         else:
             return "other"
 
-    def _url_to_filepath(self, url):
+    def _url_to_filepath(self, url: str) -> Path:
         """Convert a URL to a local file path."""
         parsed = urlparse(url)
         path = parsed.path
@@ -229,7 +229,7 @@ class WaybackDownloader:
 
         return self.output_dir / path
 
-    def _download_file(self, wayback_url, original_url):
+    def _download_file(self, wayback_url: str, original_url: str) -> requests.Response | None:
         """Download a file from Wayback Machine with retry logic."""
         try:
             # Check if already downloaded
@@ -304,7 +304,7 @@ class WaybackDownloader:
             logger.error(f"Error downloading {wayback_url}: {e}")
             return None
 
-    def _rewrite_urls_in_html(self, html_content, base_url):
+    def _rewrite_urls_in_html(self, html_content: str, base_url: str) -> tuple[str, list[str]]:
         """Rewrite URLs in HTML to point to local files."""
         soup = BeautifulSoup(html_content, "html.parser")
 
@@ -378,7 +378,7 @@ class WaybackDownloader:
 
         return str(soup), resources
 
-    def _crawl_page(self, original_url):
+    def _crawl_page(self, original_url: str) -> None:
         """Download a page and extract links to other pages/resources."""
         wayback_url = self._build_wayback_url(original_url)
 
@@ -461,7 +461,7 @@ class WaybackDownloader:
         # Be nice to the server
         time.sleep(self.delay)
 
-    def download(self):
+    def download(self) -> None:
         """Start the download process."""
         logger.info("=" * 60)
         logger.info("Wayback Machine Downloader")
@@ -519,7 +519,7 @@ class WaybackDownloader:
         )
 
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser(
         description="Download archived websites from Wayback Machine",
         formatter_class=argparse.RawDescriptionHelpFormatter,
