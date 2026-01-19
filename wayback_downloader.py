@@ -63,6 +63,9 @@ class WaybackDownloader:
         # Queue for URLs to process
         self.url_queue = deque()
 
+        # Priority queue for CSS/JS (downloaded before next HTML page)
+        self.priority_queue: deque[str] = deque()
+
         # Session for connection pooling and custom headers
         self.session = requests.Session()
         self.session.headers.update(
@@ -481,13 +484,14 @@ class WaybackDownloader:
                     if absolute_url not in self.visited_urls:
                         self.url_queue.append(absolute_url)
 
-            # Add resources to queue
+            # Add resources to queues (CSS/JS prioritized, others to regular queue)
             for resource_url in resources:
-                if (
-                    resource_url not in self.visited_urls
-                    and self._get_file_type(resource_url) != "html"
-                ):
-                    self.url_queue.append(resource_url)
+                if resource_url not in self.visited_urls:
+                    file_type = self._get_file_type(resource_url)
+                    if file_type in ("css", "js"):
+                        self.priority_queue.append(resource_url)
+                    elif file_type != "html":
+                        self.url_queue.append(resource_url)
 
         # Be nice to the server
         time.sleep(self.delay)
@@ -515,8 +519,8 @@ class WaybackDownloader:
         # Start with the initial URL
         self.url_queue.append(original_start_url)
 
-        # Process queue
-        while self.url_queue:
+        # Process queues (priority queue for CSS/JS first, then regular queue)
+        while self.url_queue or self.priority_queue:
             # Check max pages limit
             if self.max_pages and len(self.visited_urls) >= self.max_pages:
                 if not self.verbose:
@@ -524,7 +528,11 @@ class WaybackDownloader:
                 logger.info(f"Reached maximum page limit ({self.max_pages})")
                 break
 
-            url = self.url_queue.popleft()
+            # Process priority queue (CSS/JS) first
+            if self.priority_queue:
+                url = self.priority_queue.popleft()
+            else:
+                url = self.url_queue.popleft()
             self._crawl_page(url)
 
         # Ensure we end with a newline after dots
